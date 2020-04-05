@@ -1,9 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Note = require("./models/Note");
+const Pageview = require("./models/Pageview");
 const path = require('path');
 const md = require('marked');
-
 const app = express();
 
 mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/notes', { useNewUrlParser: true });
@@ -14,9 +14,39 @@ app.set('views', 'views');
 app.use(express.urlencoded({ extended: true }));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
+let getRoute = (req) => {
+  const route = req.route ? req.route.path : '' // check if the handler exist
+  const baseUrl = req.baseUrl ? req.baseUrl : '' // adding the base url if the handler is a child of another handler
+  return route ? `${baseUrl === '/' ? '' : baseUrl}${route}` : 'unknown route'
+}
+
+app.use(async(req, res, next) => {
+  if (req.method == "GET") {
+    const data = {
+      path: req.originalUrl,
+      date: new Date(),
+      userAgent: req.get('User-Agent')
+    };
+    try {
+      const pageview = new Pageview(data);
+      await pageview.save();
+      console.log("Registro añadido a la base de datos pageview");
+    } catch(e) {
+      return next(e);
+    }
+  }
+   next()
+})
+
 app.get("/", async (req, res) => {
   const notes = await Note.find();
   res.render("index",{ notes: notes } )
+});
+
+app.get("/analytics", async(req, res, next) => {
+  const pageviews = await Pageview.aggregate().group({ _id: "$path", count: {$sum: 1}});
+  res.render("analytics" , {arr: pageviews})
+  console.log(pageviews)
 });
 
 app.get("/notes/new", async (req, res) => {

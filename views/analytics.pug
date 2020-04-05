@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  table(border="1")
+    thead
+      tr
+        th Path
+        th Visits
+    tbody
+      each val in arr
+        tr
+          td= val._id
+          td= val.count
