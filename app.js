@@ -10,7 +10,6 @@ mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/notes', {
 
 app.set('view engine', 'pug');
 app.set('views', 'views');
-
 app.use(express.urlencoded({ extended: true }));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
@@ -38,15 +37,15 @@ app.use(async(req, res, next) => {
    next()
 })
 
-app.get("/", async (req, res) => {
-  const notes = await Note.find();
-  res.render("index",{ notes: notes } )
-});
-
 app.get("/analytics", async(req, res, next) => {
   const pageviews = await Pageview.aggregate().group({ _id: "$path", count: {$sum: 1}});
   res.render("analytics" , {arr: pageviews})
   console.log(pageviews)
+});
+
+app.get("/", async (req, res) => {
+  const notes = await Note.find();
+  res.render("index",{ notes: notes } )
 });
 
 app.get("/notes/new", async (req, res) => {
